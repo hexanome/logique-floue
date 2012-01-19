@@ -66,6 +66,23 @@ namespace ApplicationFloue
     {
         static void Main(string[] args)
         {
+            Boolean continu = true;
+            String reponse = String.Empty;
+            while (continu)
+            {
+                exec();
+                Console.WriteLine("Continuer? (o/n)");
+                reponse = Console.ReadLine();
+                if (reponse.Equals("n"))
+                {
+                    continu = false;
+                }
+            }
+            // Fin.
+        }
+
+        static void exec()
+        {
             // Définition des ensembles.
             Dictionary<FTemperature, Intervalle> ensembleTemperature = new Dictionary<FTemperature, Intervalle>();
             ensembleTemperature.Add(FTemperature.Froide, new Intervalle(0, 5));
@@ -83,6 +100,11 @@ namespace ApplicationFloue
             ensembleNappe.Add(FNappe.Insuffisant, new Intervalle(0, 1));
             ensembleNappe.Add(FNappe.Faible, new Intervalle(1.5, 1.5));
             ensembleNappe.Add(FNappe.Suffisant, new Intervalle(2, 10));
+
+            Dictionary<FDuree, Intervalle> ensembleDuree = new Dictionary<FDuree, Intervalle>();
+            ensembleDuree.Add(FDuree.Courte, new Intervalle(0, 5));
+            ensembleDuree.Add(FDuree.Moyenne, new Intervalle(10, 10));
+            ensembleDuree.Add(FDuree.Longue, new Intervalle(30, 30));
 
             // Règles en dur.
             // TODO: Lecture JSON des règles.
@@ -105,9 +127,19 @@ namespace ApplicationFloue
             reglesDureeNappe.Add(new Regle<FDuree, FNappe, FDuree>(FDuree.Longue, FNappe.Faible, FDuree.Moyenne));
             reglesDureeNappe.Add(new Regle<FDuree, FNappe, FDuree>(FDuree.Longue, FNappe.Suffisant, FDuree.Longue));
 
+            Console.WriteLine("Temperature ?");
+            String temp = Console.ReadLine();
+            double dtemp = Convert.ToDouble(temp);
+            Console.WriteLine("Humidite ?");
+            String humidite = Console.ReadLine();
+            double dhumidite = Convert.ToDouble(humidite);
+            Console.WriteLine("Nappe ?");
+            String nappe = Console.ReadLine();
+            double dnappe = Convert.ToDouble(nappe);
+
             // Fuzzification 1.
-            Dictionary<FTemperature, double> ponderationsTemperature = GetPonderations<FTemperature>(ensembleTemperature, 6);
-            Dictionary<FHumidite, double> ponderationsHumidite = GetPonderations<FHumidite>(ensembleHumidite, 0.5);
+            Dictionary<FTemperature, double> ponderationsTemperature = GetPonderations<FTemperature>(ensembleTemperature, dtemp);
+            Dictionary<FHumidite, double> ponderationsHumidite = GetPonderations<FHumidite>(ensembleHumidite, dhumidite);
 
             foreach (KeyValuePair<FTemperature, double> ponderation in ponderationsTemperature)
             {
@@ -127,13 +159,207 @@ namespace ApplicationFloue
                 Console.WriteLine("Valeur agrégée pour {0} : {1}", agregation.Key, agregation.Value);
             }
 
+            //Defuzzification du controlleur 1
+           double dureeTheorique = CentreDeGravite<FDuree>(dureesAgregees, ensembleDuree);
+           Console.WriteLine("Duree theorique : {0}", dureeTheorique);
+           Console.WriteLine("");
+
             // Fuzzification 2.
-            Dictionary<FNappe, double> ponderationsNappe = GetPonderations<FNappe>(ensembleNappe, 1.4);
+            Dictionary<FNappe, double> ponderationsNappe = GetPonderations<FNappe>(ensembleNappe, dnappe);
+            Dictionary<FDuree, double> ponderationsDuree = GetPonderations<FDuree>(ensembleDuree, dureeTheorique);
 
+            foreach (KeyValuePair<FNappe, double> ponderation in ponderationsNappe)
+            {
+                Console.WriteLine("Pour la nappe: {0}, on a {1}.", ponderation.Key, ponderation.Value);
+            }
 
+            foreach (KeyValuePair<FDuree, double> ponderation in ponderationsDuree)
+            {
+                Console.WriteLine("Pour la durée: {0}, on a {1}.", ponderation.Key, ponderation.Value);
+            }
 
-            // Fin.
-            Console.Read();
+            // Inférence/Agrégation.
+            Dictionary<FDuree, double> dureesAgregees2 = InferenceAgregation<FDuree, FNappe, FDuree>(reglesDureeNappe, ponderationsDuree, ponderationsNappe);
+
+            foreach (KeyValuePair<FDuree, double> agregation in dureesAgregees2)
+            {
+                Console.WriteLine("Valeur agrégée pour {0} : {1}", agregation.Key, agregation.Value);
+            }
+
+            //Defuzzification du controlleur 1
+            double dureeTheorique2 = CentreDeGravite<FDuree>(dureesAgregees2, ensembleDuree);
+            Console.WriteLine("Duree d'arrosage : {0}", dureeTheorique2);
+            Console.WriteLine("");
+
+        }
+
+        private static double CentreDeGravite<T>(Dictionary<T, double> dureesAgregees, Dictionary<T, Intervalle> ensembleDuree)
+        {            
+            List<double[]> coorList = new List<double[]>();
+            for (int i = 0; i < Enum.GetValues(typeof(T)).Length; i++)
+            {
+                T key = (T)Enum.GetValues(typeof(T)).GetValue(i);
+
+                Boolean previousFlou = false;
+                Boolean nextFlou = false;
+                Intervalle  previous = null;
+                Intervalle next = null;
+
+                if (i > 0)
+                {
+                    previous = ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i - 1)];
+                    if(dureesAgregees.ContainsKey((T)Enum.GetValues(typeof(T)).GetValue(i - 1)))
+                    {
+                        if (dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i-1)] != 0.0)
+                        {
+                            previousFlou = true;
+                        }
+                    }
+                }
+
+                if (i < ensembleDuree.Keys.Count - 1)
+                {
+                    next = ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i + 1)];
+                    if(dureesAgregees.ContainsKey((T)Enum.GetValues(typeof(T)).GetValue(i + 1)))
+                    {
+                        if (dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i + 1)] != 0.0)
+                        {
+                            nextFlou = true;
+                        }
+                    }
+                }
+
+                if(dureesAgregees.ContainsKey((T)Enum.GetValues(typeof(T)).GetValue(i)))
+                {
+                    if(dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)] != 0.0)
+                    {
+                    double x;
+                    double y;   
+                    if(previousFlou==false)
+                    {
+                        double[] coordonne = new double[2];
+                        if(previous!=null)
+                        {
+                            coordonne[0] = previous.Right;
+                            coordonne[1] = 0;
+                            coorList.Add(coordonne);
+                            double[] coordonneAp = new double[2];
+                            x= ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i-1)].Right +((ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Left - ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i-1)].Right)*dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)]);
+                            coordonneAp[0] = x;
+                            coordonneAp[1] = dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)];
+                            coorList.Add(coordonneAp);
+                        }
+                        else
+                        {
+                            coordonne[0] = ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Left;
+                            coordonne[1] = dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)];
+                            coorList.Add(coordonne);
+                        }
+                    }
+                    else
+                    {
+                        x = ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i-1)].Right +((ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Left - ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i-1)].Right)*dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)]);
+                        y = ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Left - ((ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Left - ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i-1)].Right)*dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i-1)]);
+                     
+                        //test segment 1
+                        double[] inter = intersection(ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i - 1)].Right, 0, x, dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)], y,dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i-1)],ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Left, 0);
+                        if(inter==null)
+                        {
+                            inter = intersection(ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i - 1)].Right, 0, x, dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)], y, dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i - 1)], ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i - 1)].Left, dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i - 1)]);
+                        }
+                        if(inter!=null)
+                        {
+                            coorList.Add(inter);
+                            double[] coordonneAp = new double[2];
+                            coordonneAp[0] = ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Left;
+                            coordonneAp[1] = dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)];
+                            coorList.Add(coordonneAp);
+                        }
+                        else
+                        {
+                            inter = intersection(x, dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)], ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Right, dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)], y, dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i - 1)], ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Left, 0);
+                            coorList.Add(inter);
+                        }
+                    }
+                    if(nextFlou==false)
+                    {
+                        double[] coordonne = new double[2];
+                        if(next!=null)
+                        {
+                            double[] coordonneAv = new double[2];
+                            x = ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i + 1)].Left - ((ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i + 1)].Left - ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Right) * dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)]);
+                            coordonneAv[0] = x;
+                            coordonneAv[1] = dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)];
+                            coorList.Add(coordonneAv);
+                            coordonne[0] = next.Left;
+                            coordonne[1] = 0;
+                            coorList.Add(coordonne);
+                        }
+                        else
+                        {
+                            coordonne[0] = ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Right;
+                            coordonne[1] = dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)];
+                            coorList.Add(coordonne);
+                        }
+                    }
+                    else
+                    {
+                        x = ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i + 1)].Left - ((ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i + 1)].Left - ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Right) * dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)]);
+                        y = ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Right + ((ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i+1)].Left - ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Right)*dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i+1)]);
+                        //test segment 1
+                        double[] inter = intersection(x,dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)],ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i+1)].Left,0,ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Right,0,y,dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i+1)]);
+                        if(inter==null)
+                        {
+                            inter = intersection(x,dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)],ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i+1)].Left,0,y,dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i+1)],ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i+1)].Right,dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i+1)]);
+                        }
+                        if(inter!=null)
+                        {
+                            double[] coordonneAp = new double[2];
+                            coordonneAp[0] = x;
+                            coordonneAp[1] = dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)];
+                            coorList.Add(coordonneAp);
+                            coorList.Add(inter);
+                        }
+                        else
+                        {
+                             inter = intersection(ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Left,dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)],x,dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i)],ensembleDuree[(T)Enum.GetValues(typeof(T)).GetValue(i)].Right,0,y,dureesAgregees[(T)Enum.GetValues(typeof(T)).GetValue(i+1)]);
+                             coorList.Add(inter);
+                        }
+                    }
+                }}
+            }
+            double sommeNumerateur = 0;
+            double sommeDenominateur = 0;
+            for (int i = 0; i < coorList.ToArray().Length-1; i++)
+            {
+                double[] obj = coorList.ToArray()[i];
+                double[] next=null;
+                next = coorList.ToArray()[i + 1];
+                if(i != coorList.ToArray().Length-2)
+                {
+                    Boolean continu = true;
+                    while(continu)
+                    {
+                        if(next[0]==obj[0] && next[1] == obj[1])
+                        {
+                            coorList.RemoveAt(i+1);
+                            next = coorList.ToArray()[i + 1];
+                        }
+                        else
+                        {
+                            continu = false;
+                        }
+                    }
+                }
+                sommeNumerateur += (next[0]-obj[0])*((2*next[0]+obj[0])*next[1]+(2*obj[0]+next[0])*obj[1]);
+                sommeDenominateur += (next[0]-obj[0])*(next[1]+obj[1]);
+            }
+            if (sommeDenominateur != 0)
+            {
+                return sommeNumerateur / (3 * sommeDenominateur);
+            }
+            return 0;
+            
         }
 
         static Dictionary<T, double> GetPonderations<T>(Dictionary<T, Intervalle> src, double value)
@@ -158,8 +384,8 @@ namespace ApplicationFloue
                 }
 
                 if ((value >= src[key].Left && value <= src[key].Right)
-                    || (previous != null && value > previous.Right)
-                    || (next != null && value < next.Left))
+                    || (previous != null && value > previous.Right && value <= src[key].Left)
+                    || (next != null && value < next.Left && value >= src[key].Right))
                 {
                     valeursFloues.Add(key);
                 }
@@ -211,6 +437,20 @@ namespace ApplicationFloue
             }
 
             return agregation;
+        }
+
+        static double[] intersection(double Ax, double Ay, double Bx, double By, double Cx, double Cy, double Dx, double Dy)
+        {
+             double r = ((Ay-Cy)*(Dx-Cx)-(Ax-Cx)*(Dy-Cy))/((Bx-Ax)*(Dy-Cy)-(By-Ay)*(Dx-Cx));
+             double s = ((Ay-Cy)*(Bx-Ax)-(Ax-Cx)*(By-Ay))/((Bx-Ax)*(Dy-Cy)-(By-Ay)*(Dx-Cx));
+             if (r <= 1 && r >= 0 && s <= 1.0 && s >= 0.0)
+             {
+                 double[] result = new double[2];
+                 result[0]=Ax+r*(Bx-Ax);
+                 result[1]=Ay+r*(By-Ay);
+                 return result;
+             }
+             return null;
         }
     }
 }
