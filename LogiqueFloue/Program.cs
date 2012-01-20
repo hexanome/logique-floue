@@ -143,35 +143,6 @@ namespace ApplicationFloue
             Console.WriteLine(""); 
             Console.WriteLine("2eme controleur");
             double dureeTheorique2 = FuzzificationDefuzzification<FNappe, FDuree, FDuree>(ensembleNappe, ensembleDuree, ensembleDuree, reglesDureeNappe, dnappe, dureeTheorique1);
-
-            /*
-            // Fuzzification 2.
-            Dictionary<FNappe, double> ponderationsNappe = GetPonderations<FNappe>(ensembleNappe, dnappe);
-            Dictionary<FDuree, double> ponderationsDuree = GetPonderations<FDuree>(ensembleDuree, dureeTheorique);
-
-            foreach (KeyValuePair<FNappe, double> ponderation in ponderationsNappe)
-            {
-                Console.WriteLine("Pour la nappe: {0}, on a {1}.", ponderation.Key, ponderation.Value);
-            }
-
-            foreach (KeyValuePair<FDuree, double> ponderation in ponderationsDuree)
-            {
-                Console.WriteLine("Pour la durée: {0}, on a {1}.", ponderation.Key, ponderation.Value);
-            }
-
-            // Inférence/Agrégation.
-            Dictionary<FDuree, double> dureesAgregees2 = InferenceAgregation<FDuree, FNappe, FDuree>(reglesDureeNappe, ponderationsDuree, ponderationsNappe);
-
-            foreach (KeyValuePair<FDuree, double> agregation in dureesAgregees2)
-            {
-                Console.WriteLine("Valeur agrégée pour {0} : {1}", agregation.Key, agregation.Value);
-            }
-            
-            //Defuzzification du controlleur 1
-            double dureeTheorique2 = CentreDeGravite<FDuree>(dureesAgregees2, ensembleDuree);
-            Console.WriteLine("Duree d'arrosage : {0}", dureeTheorique2);
-            Console.WriteLine("");
-            */
         }
 
         private static double FuzzificationDefuzzification<T1, T2, TResult>(Dictionary<T1, Intervalle> ensemble1, Dictionary<T2, Intervalle> ensemble2, Dictionary<TResult, Intervalle> ensembleResult, List<Regle<T2, T1, TResult>> regles, double data1, double data2)
