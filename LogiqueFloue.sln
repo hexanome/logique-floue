@@ -3,16 +3,57 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LogiqueFloue", "LogiqueFloue\LogiqueFloue.csproj", "{A5502C97-B662-46EB-8A43-D19A14B2969B}"
 EndProject
+Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "Presentation", "Presentation\", "{F2404C63-F3F8-40E2-8755-BC90D3F68445}"
+	ProjectSection(WebsiteProperties) = preProject
+		TargetFrameworkMoniker = ".NETFramework,Version%3Dv4.0"
+		Debug.AspNetCompiler.VirtualPath = "/Presentation"
+		Debug.AspNetCompiler.PhysicalPath = "Presentation\"
+		Debug.AspNetCompiler.TargetPath = "PrecompiledWeb\Presentation\"
+		Debug.AspNetCompiler.Updateable = "true"
+		Debug.AspNetCompiler.ForceOverwrite = "true"
+		Debug.AspNetCompiler.FixedNames = "false"
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.VirtualPath = "/Presentation"
+		Release.AspNetCompiler.PhysicalPath = "Presentation\"
+		Release.AspNetCompiler.TargetPath = "PrecompiledWeb\Presentation\"
+		Release.AspNetCompiler.Updateable = "true"
+		Release.AspNetCompiler.ForceOverwrite = "true"
+		Release.AspNetCompiler.FixedNames = "false"
+		Release.AspNetCompiler.Debug = "False"
+		VWDPort = "57011"
+		DefaultWebSiteLanguage = "Visual C#"
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|Mixed Platforms = Debug|Mixed Platforms
 		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|Mixed Platforms = Release|Mixed Platforms
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A5502C97-B662-46EB-8A43-D19A14B2969B}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{A5502C97-B662-46EB-8A43-D19A14B2969B}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
+		{A5502C97-B662-46EB-8A43-D19A14B2969B}.Debug|Mixed Platforms.Build.0 = Debug|x86
 		{A5502C97-B662-46EB-8A43-D19A14B2969B}.Debug|x86.ActiveCfg = Debug|x86
 		{A5502C97-B662-46EB-8A43-D19A14B2969B}.Debug|x86.Build.0 = Debug|x86
+		{A5502C97-B662-46EB-8A43-D19A14B2969B}.Release|Any CPU.ActiveCfg = Release|x86
+		{A5502C97-B662-46EB-8A43-D19A14B2969B}.Release|Mixed Platforms.ActiveCfg = Release|x86
+		{A5502C97-B662-46EB-8A43-D19A14B2969B}.Release|Mixed Platforms.Build.0 = Release|x86
 		{A5502C97-B662-46EB-8A43-D19A14B2969B}.Release|x86.ActiveCfg = Release|x86
 		{A5502C97-B662-46EB-8A43-D19A14B2969B}.Release|x86.Build.0 = Release|x86
+		{F2404C63-F3F8-40E2-8755-BC90D3F68445}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2404C63-F3F8-40E2-8755-BC90D3F68445}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2404C63-F3F8-40E2-8755-BC90D3F68445}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{F2404C63-F3F8-40E2-8755-BC90D3F68445}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{F2404C63-F3F8-40E2-8755-BC90D3F68445}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F2404C63-F3F8-40E2-8755-BC90D3F68445}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2404C63-F3F8-40E2-8755-BC90D3F68445}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{F2404C63-F3F8-40E2-8755-BC90D3F68445}.Release|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{F2404C63-F3F8-40E2-8755-BC90D3F68445}.Release|Mixed Platforms.Build.0 = Debug|Any CPU
+		{F2404C63-F3F8-40E2-8755-BC90D3F68445}.Release|x86.ActiveCfg = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
