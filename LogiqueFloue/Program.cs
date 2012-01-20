@@ -35,6 +35,14 @@ namespace ApplicationFloue
         Longue
     }
 
+    public enum FBudget
+    {
+        INSA,
+        Dette,
+        Bon,
+        Americain
+    }
+
     public class Intervalle
     {
         public Intervalle(double left, double right)
@@ -68,9 +76,19 @@ namespace ApplicationFloue
         {
             Boolean continu = true;
             String reponse = String.Empty;
+            Boolean controleurNb3 = false;
+            
             while (continu)
             {
-                exec();
+                Console.WriteLine("Combien de controleurs (2 ou 3)?");
+                reponse = Console.ReadLine();
+                int nbControleur = Convert.ToInt16(reponse);
+
+                if (nbControleur == 3)
+                {
+                    controleurNb3 = true;
+                }
+                exec(controleurNb3);
                 Console.WriteLine("Continuer? (o/n)");
                 reponse = Console.ReadLine();
                 if (reponse.Equals("n"))
@@ -81,7 +99,7 @@ namespace ApplicationFloue
             // Fin.
         }
 
-        static void exec()
+        static void exec(Boolean controleurNb3)
         {
             // Définition des ensembles.
             Dictionary<FTemperature, Intervalle> ensembleTemperature = new Dictionary<FTemperature, Intervalle>();
@@ -106,6 +124,12 @@ namespace ApplicationFloue
             ensembleDuree.Add(FDuree.Moyenne, new Intervalle(10, 10));
             ensembleDuree.Add(FDuree.Longue, new Intervalle(30, 30));
 
+            Dictionary<FBudget, Intervalle> ensembleBudget = new Dictionary<FBudget, Intervalle>();
+            ensembleBudget.Add(FBudget.INSA, new Intervalle(0, 5));
+            ensembleBudget.Add(FBudget.Dette, new Intervalle(15, 20));
+            ensembleBudget.Add(FBudget.Bon, new Intervalle(45, 70));
+            ensembleBudget.Add(FBudget.Americain, new Intervalle(80, 100));
+
             // Règles en dur.
             // TODO: Lecture JSON des règles.
             List<Regle<FHumidite, FTemperature, FDuree>> reglesHumiditeTemperature = new List<Regle<FHumidite, FTemperature, FDuree>>();
@@ -127,15 +151,33 @@ namespace ApplicationFloue
             reglesDureeNappe.Add(new Regle<FDuree, FNappe, FDuree>(FDuree.Longue, FNappe.Faible, FDuree.Moyenne));
             reglesDureeNappe.Add(new Regle<FDuree, FNappe, FDuree>(FDuree.Longue, FNappe.Suffisant, FDuree.Longue));
 
+            List<Regle<FDuree, FBudget, FDuree>> reglesDureeBudget = new List<Regle<FDuree, FBudget, FDuree>>();
+            reglesDureeBudget.Add(new Regle<FDuree, FBudget, FDuree>(FDuree.Courte,FBudget.Bon , FDuree.Courte));
+            reglesDureeBudget.Add(new Regle<FDuree, FBudget, FDuree>(FDuree.Courte,FBudget.Americain , FDuree.Longue));
+            reglesDureeBudget.Add(new Regle<FDuree, FBudget, FDuree>(FDuree.Moyenne, FBudget.Bon, FDuree.Moyenne));
+            reglesDureeBudget.Add(new Regle<FDuree, FBudget, FDuree>(FDuree.Moyenne, FBudget.Americain , FDuree.Longue));
+            reglesDureeBudget.Add(new Regle<FDuree, FBudget, FDuree>(FDuree.Longue,FBudget.Dette , FDuree.Courte));
+            reglesDureeBudget.Add(new Regle<FDuree, FBudget, FDuree>(FDuree.Longue,FBudget.Bon , FDuree.Longue));
+            reglesDureeBudget.Add(new Regle<FDuree, FBudget, FDuree>(FDuree.Longue,FBudget.Americain , FDuree.Longue));
+
             Console.WriteLine("Temperature ?");
             String temp = Console.ReadLine();
-            double dtemp = Convert.ToDouble(temp);
+            double dtemp = Double.Parse(temp);
             Console.WriteLine("Humidite ?");
             String humidite = Console.ReadLine();
-            double dhumidite = Convert.ToDouble(humidite);
+            double dhumidite = Double.Parse(humidite);
+            dhumidite /= 100;
             Console.WriteLine("Nappe ?");
             String nappe = Console.ReadLine();
-            double dnappe = Convert.ToDouble(nappe);
+            double dnappe = Double.Parse(nappe);
+            String budget = String.Empty;
+            double dbudget = 0;
+            if (controleurNb3)
+            {
+                Console.WriteLine("Budget ?");
+                budget = Console.ReadLine();
+                dbudget = Double.Parse(budget);
+            }
 
             // Fuzzification 1.
             Console.WriteLine("1er controleur");
@@ -143,6 +185,13 @@ namespace ApplicationFloue
             Console.WriteLine(""); 
             Console.WriteLine("2eme controleur");
             double dureeTheorique2 = FuzzificationDefuzzification<FNappe, FDuree, FDuree>(ensembleNappe, ensembleDuree, ensembleDuree, reglesDureeNappe, dnappe, dureeTheorique1);
+            if (controleurNb3)
+            {
+                Console.WriteLine("");
+                Console.WriteLine("3eme controleur");
+                double dureeTheorique3 = FuzzificationDefuzzification<FBudget, FDuree, FDuree>(ensembleBudget, ensembleDuree, ensembleDuree, reglesDureeBudget, dbudget, dureeTheorique2);
+            }
+        
         }
 
         private static double FuzzificationDefuzzification<T1, T2, TResult>(Dictionary<T1, Intervalle> ensemble1, Dictionary<T2, Intervalle> ensemble2, Dictionary<TResult, Intervalle> ensembleResult, List<Regle<T2, T1, TResult>> regles, double data1, double data2)
